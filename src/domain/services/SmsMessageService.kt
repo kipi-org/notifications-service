@@ -1,5 +1,6 @@
 package domain.services
 
+import Config
 import controllers.request.NotificationRequest
 import controllers.request.OtpConfirmationRequest
 import domain.clients.SmsNotificationsClient
@@ -13,9 +14,21 @@ import utils.ConfirmationUtils.generateCode
 
 class SmsMessageService(
     private val otpCodeRepository: OtpCodeRepository,
-    private val smsNotificationsClient: SmsNotificationsClient
+    private val smsNotificationsClient: SmsNotificationsClient,
+    private val config: Config,
 ) {
     suspend fun sendConfirmNotification(userId: Long, notificationRequest: NotificationRequest) {
+        if (config.testPhoneNumber.replace(
+                "\\D".toRegex(),
+                ""
+            ) == notificationRequest.receiverPhoneNumber.replace("\\D".toRegex(), "")
+        ) {
+            otpCodeRepository.save(
+                userId,
+                StorableConfirmationNotification(notificationRequest.receiverPhoneNumber, "0000")
+            )
+            return
+        }
         val otpCode = generateCode()
 
         smsNotificationsClient.sendNotification(
