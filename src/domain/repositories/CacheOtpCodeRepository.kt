@@ -1,23 +1,26 @@
 package domain.repositories
 
-import com.google.common.cache.Cache
-import com.google.common.cache.CacheBuilder
 import domain.dto.StorableConfirmationNotification
-import java.time.Duration
+import net.spy.memcached.MemcachedClient
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.DurationUnit
 
 class CacheOtpCodeRepository(
-    private val cache: Cache<Long, StorableConfirmationNotification> = CacheBuilder
-        .newBuilder()
-        .expireAfterWrite(Duration.ofMinutes(10))
-        .build()
+    private val cache: MemcachedClient,
 ) : OtpCodeRepository {
 
     override fun save(userId: Long, notification: StorableConfirmationNotification) {
-        cache.invalidate(userId)
-        cache.put(userId, notification)
+        cache.delete(userId.toString())
+        cache.set(userId.toString(), 5.minutes.toInt(DurationUnit.SECONDS), notification)
     }
 
-    override fun get(userId: Long): StorableConfirmationNotification? = cache.getIfPresent(userId)
+    override fun get(userId: Long): StorableConfirmationNotification? = try {
+        cache.get(userId.toString()) as StorableConfirmationNotification
+    } catch (e: Throwable) {
+        null
+    }
 
-    override fun delete(userId: Long) = cache.invalidate(userId)
+    override fun delete(userId: Long) {
+        cache.delete(userId.toString())
+    }
 }

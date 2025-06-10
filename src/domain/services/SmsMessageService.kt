@@ -10,6 +10,8 @@ import domain.repositories.OtpCodeRepository
 import exceptions.NotificationNotFoundException
 import exceptions.OtpCodeException
 import utils.ConfirmationUtils.generateCode
+import utils.PhoneNumberUtils
+import utils.PhoneNumberUtils.areNumbersSame
 
 
 class SmsMessageService(
@@ -18,14 +20,12 @@ class SmsMessageService(
     private val config: Config,
 ) {
     suspend fun sendConfirmNotification(userId: Long, notificationRequest: NotificationRequest) {
-        if (config.testPhoneNumber.replace(
-                "\\D".toRegex(),
-                ""
-            ) == notificationRequest.receiverPhoneNumber.replace("\\D".toRegex(), "")
-        ) {
+        val receiverPhoneNumber =
+            PhoneNumberUtils.validateAndNormalizePhoneNumber(notificationRequest.receiverPhoneNumber)
+        if (areNumbersSame(config.testPhoneNumber, receiverPhoneNumber)) {
             otpCodeRepository.save(
                 userId,
-                StorableConfirmationNotification(notificationRequest.receiverPhoneNumber, "0000")
+                StorableConfirmationNotification(receiverPhoneNumber, config.testOtpCode)
             )
             return
         }
@@ -33,14 +33,14 @@ class SmsMessageService(
 
         smsNotificationsClient.sendNotification(
             Notification(
-                receiverPhoneNumber = notificationRequest.receiverPhoneNumber,
+                receiverPhoneNumber = receiverPhoneNumber,
                 message = "Ваш код подтверждения $otpCode. Не говорите его никому."
             )
         )
 
         otpCodeRepository.save(
             userId,
-            StorableConfirmationNotification(notificationRequest.receiverPhoneNumber, otpCode)
+            StorableConfirmationNotification(receiverPhoneNumber, otpCode)
         )
     }
 

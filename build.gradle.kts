@@ -30,6 +30,7 @@ dependencies {
     implementation("io.ktor:ktor-serialization-jackson")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
     implementation("com.googlecode.json-simple:json-simple:1.1.1")
+    implementation("net.spy:spymemcached:2.12.3")
 
     implementation("io.ktor:ktor-server-host-common-jvm:2.3.7")
     implementation("io.ktor:ktor-server-status-pages-jvm:2.3.7")
